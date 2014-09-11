@@ -21,7 +21,9 @@
 {
     [super viewDidLoad];
     
-    self.scrollView = [[KKScrollView alloc] initWithFrame:CGRectMake(0, 0, 320, 258.8 / 2) images:[NSMutableArray arrayWithObjects:[UIImage imageNamed:@"main_banner_1"], [UIImage imageNamed:@"main_banner_2"], [UIImage imageNamed:@"main_banner_3"], nil]];
+    self.scrollView = [[KKScrollView alloc] initWithFrame:CGRectMake(0, 0, 320, 258.8 / 2) images:[NSMutableArray arrayWithObjects:[UIImage imageNamed:@"main_banner_1"], [UIImage imageNamed:@"main_banner_2"], [UIImage imageNamed:@"main_banner_3"], [UIImage imageNamed:@"main_banner_3"], nil]];
+//    _scrollView.needAutoCycle = YES;
+//    _scrollView.timeInterval = 1.0;
     
     [self.view addSubview:self.scrollView];
 }

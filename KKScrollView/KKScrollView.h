@@ -10,6 +10,9 @@
 
 @interface KKScrollView : UIView
 
+@property (nonatomic, assign) BOOL needAutoCycle;
+@property (nonatomic, assign) NSTimeInterval timeInterval;
+
 - (id)initWithFrame:(CGRect)frame images:(NSMutableArray *)images;
 
 @end
