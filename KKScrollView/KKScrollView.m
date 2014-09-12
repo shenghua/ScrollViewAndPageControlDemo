@@ -75,12 +75,12 @@
         _needAutoCycle = NO;
         _timeInterval = 1.0;
         
-        self.pageControl = [[UIPageControl alloc] initWithFrame:CGRectMake(0, scrollView.bounds.size.height - 20, scrollView.bounds.size.width, 20)];
+        self.pageControl = [[UIPageControl alloc] initWithFrame:CGRectMake(0, scrollView.bounds.size.height - 10, scrollView.bounds.size.width, 10)];
         pageControl.numberOfPages = imagesArray.count;
         pageControl.pageIndicatorTintColor = [UIColor lightGrayColor];
         pageControl.currentPageIndicatorTintColor = [UIColor darkGrayColor];
         pageControl.defersCurrentPageDisplay = YES;
-        [pageControl addTarget:self action:@selector(pageControlValueDidChanged) forControlEvents:UIControlEventValueChanged];
+//        [pageControl addTarget:self action:@selector(pageControlValueDidChanged) forControlEvents:UIControlEventValueChanged];
         
         [self addSubview:pageControl];
     }
@@ -108,6 +108,36 @@
 }
 
 #pragma mark - UIScrollViewDelegate
+- (void)scrollViewDidScroll:(UIScrollView *)ascrollView
+{
+    float contentOffsetX = ascrollView.contentOffset.x;
+    float scrollViewWidth = ascrollView.frame.size.width;
+    
+    // 左滑
+    if (contentOffsetX > scrollViewWidth) {
+        if (contentOffsetX > scrollViewWidth + scrollViewWidth / 2.0)
+            pageControl.currentPage = currentImageIndex == (imagesArray.count - 1) ? 0 : currentImageIndex + 1;
+        else
+            pageControl.currentPage = currentImageIndex;
+    }
+    else if (contentOffsetX < scrollViewWidth) {
+        if (contentOffsetX < scrollViewWidth - scrollViewWidth / 2.0)
+            pageControl.currentPage = currentImageIndex == 0 ? imagesArray.count - 1 : currentImageIndex - 1;
+        else
+            pageControl.currentPage = currentImageIndex;
+    }
+}
+
+- (void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate
+{
+    NSLog(@"1111");
+}
+
+- (void)scrollViewDidEndScrollingAnimation:(UIScrollView *)scrollView
+{
+    NSLog(@"2222");
+}
+
 - (void)scrollViewDidEndDecelerating:(UIScrollView *)ascrollView
 {
     if(scrollView.contentOffset.x > scrollView.frame.size.width)
