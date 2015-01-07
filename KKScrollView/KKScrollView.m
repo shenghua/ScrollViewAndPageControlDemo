@@ -12,21 +12,22 @@
 
 @interface KKScrollView () <UIScrollViewDelegate>
 
-@property (nonatomic, retain) UIScrollView *scrollView;
+@property (nonatomic, retain) UIScrollView *pageScrollView;
 @property (nonatomic, retain) UIPageControl *pageControl;
-@property (nonatomic, retain) UIImageView *leftImageView;
-@property (nonatomic, retain) UIImageView *middleImageView;
-@property (nonatomic, retain) UIImageView *rightImageView;
-@property (nonatomic, retain) NSMutableArray *imagesArray;
-@property (nonatomic, assign) NSUInteger currentImageIndex;
-@property (nonatomic, assign) NSUInteger nextImageIndex;
-@property (nonatomic, assign) NSUInteger previousImageIndex;
+
+@property (nonatomic, retain) NSArray *imagesArray;
+@property (nonatomic, retain) UIImageView *firstImageView;
+@property (nonatomic, retain) UIImageView *secondImageView;
+@property (nonatomic, retain) UIImageView *thirdImageView;
+@property (nonatomic, assign) NSUInteger firstImageIndex;
+@property (nonatomic, assign) NSUInteger secondImageIndex;
+@property (nonatomic, assign) NSUInteger thirdImageIndex;
 
 @end
 
 @implementation KKScrollView
 
-@synthesize scrollView, pageControl, leftImageView, middleImageView, rightImageView, imagesArray, currentImageIndex, nextImageIndex, previousImageIndex;
+@synthesize pageScrollView, pageControl, imagesArray, firstImageView, secondImageView, thirdImageView ,firstImageIndex, secondImageIndex, thirdImageIndex;
 
 - (id)initWithFrame:(CGRect)frame
 {
@@ -41,41 +42,35 @@
 {
     self = [super initWithFrame:frame];
     if (self) {
+        
         float pageWidth = CGRectGetWidth(frame);
         float pageHeight = CGRectGetHeight(frame);
         
         self.imagesArray = [NSMutableArray arrayWithArray:images];
         
-        self.scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(0, 0, pageWidth, pageHeight)];
-        scrollView.delegate = self;
-        scrollView.showsHorizontalScrollIndicator = NO;
-        scrollView.showsVerticalScrollIndicator = NO;
-        scrollView.backgroundColor = [UIColor clearColor];
-        scrollView.pagingEnabled = YES;
-        scrollView.contentSize = CGSizeMake(pageWidth * kkScrollViewPageNumber, pageHeight);
-        [self addSubview:scrollView];
+        self.pageScrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(0, 0, pageWidth, pageHeight)];
+        pageScrollView.delegate = self;
+        pageScrollView.showsHorizontalScrollIndicator = NO;
+        pageScrollView.showsVerticalScrollIndicator = NO;
+        pageScrollView.backgroundColor = [UIColor clearColor];
+        pageScrollView.pagingEnabled = YES;
+        pageScrollView.contentSize = CGSizeMake(pageWidth * kkScrollViewPageNumber, pageHeight);
+        [self addSubview:pageScrollView];
         
-        self.leftImageView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, pageWidth, pageHeight)];
-        self.middleImageView = [[UIImageView alloc] initWithFrame:CGRectMake(pageWidth, 0, pageWidth, pageHeight)];
-        self.rightImageView = [[UIImageView alloc] initWithFrame:CGRectMake(pageWidth * 2, 0, pageWidth, pageHeight)];
+        self.firstImageView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, pageWidth, pageHeight)];
+        self.secondImageView = [[UIImageView alloc] initWithFrame:CGRectMake(pageWidth, 0, pageWidth, pageHeight)];
+        self.thirdImageView = [[UIImageView alloc] initWithFrame:CGRectMake(pageWidth * 2, 0, pageWidth, pageHeight)];
         
-        [scrollView addSubview:leftImageView];
-        [scrollView addSubview:middleImageView];
-        [scrollView addSubview:rightImageView];
+        [pageScrollView addSubview:firstImageView];
+        [pageScrollView addSubview:secondImageView];
+        [pageScrollView addSubview:thirdImageView];
         
-        currentImageIndex = 0;
-        nextImageIndex = currentImageIndex + 1;
-        previousImageIndex = imagesArray.count - 1;
-        [self loadPageWithId:previousImageIndex onPage:0];
-        [self loadPageWithId:currentImageIndex onPage:1];
-        [self loadPageWithId:nextImageIndex onPage:2];
-        
-        [scrollView scrollRectToVisible:CGRectMake(scrollView.frame.size.width, 0, scrollView.frame.size.width, scrollView.frame.size.height) animated:NO];
+        [self refreshScrollViewImages:0];
         
         _needAutoCycle = NO;
-        _timeInterval = 1.0;
+        _timeInterval = 1.5;
         
-        self.pageControl = [[UIPageControl alloc] initWithFrame:CGRectMake(0, scrollView.bounds.size.height - 10, scrollView.bounds.size.width, 10)];
+        self.pageControl = [[UIPageControl alloc] initWithFrame:CGRectMake(0, pageScrollView.bounds.size.height - 10, pageScrollView.bounds.size.width, 10)];
         pageControl.numberOfPages = imagesArray.count;
         pageControl.pageIndicatorTintColor = [UIColor lightGrayColor];
         pageControl.currentPageIndicatorTintColor = [UIColor darkGrayColor];
@@ -91,15 +86,15 @@
 {
     switch (pageIndex) {
         case 0:
-            leftImageView.image = [imagesArray objectAtIndex:imageIndex];
+            firstImageView.image = [imagesArray objectAtIndex:imageIndex];
             break;
             
         case 1:
-            middleImageView.image = [imagesArray objectAtIndex:imageIndex];
+            secondImageView.image = [imagesArray objectAtIndex:imageIndex];
             break;
             
         case 2:
-            rightImageView.image = [imagesArray objectAtIndex:imageIndex];
+            thirdImageView.image = [imagesArray objectAtIndex:imageIndex];
             break;
             
         default:
@@ -107,70 +102,62 @@
     }
 }
 
-#pragma mark - UIScrollViewDelegate
-- (void)scrollViewDidScroll:(UIScrollView *)ascrollView
+// 根据数组当前index 获取下一个index
+- (NSUInteger)getNextIndexOfArray:(NSArray *)array by:(NSUInteger)currentIndex
 {
-    float contentOffsetX = ascrollView.contentOffset.x;
-    float scrollViewWidth = ascrollView.frame.size.width;
+    NSUInteger nextIndex;
+    if (currentIndex < array.count - 1)
+        nextIndex = ++currentIndex;
+    else
+        nextIndex = 0;
     
-    // 左滑
-    if (contentOffsetX > scrollViewWidth) {
-        if (contentOffsetX > scrollViewWidth + scrollViewWidth / 2.0)
-            pageControl.currentPage = currentImageIndex == (imagesArray.count - 1) ? 0 : currentImageIndex + 1;
-        else
-            pageControl.currentPage = currentImageIndex;
-    }
-    else if (contentOffsetX < scrollViewWidth) {
-        if (contentOffsetX < scrollViewWidth - scrollViewWidth / 2.0)
-            pageControl.currentPage = currentImageIndex == 0 ? imagesArray.count - 1 : currentImageIndex - 1;
-        else
-            pageControl.currentPage = currentImageIndex;
-    }
+    return nextIndex;
 }
 
-- (void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate
+// 根据数组当前index 获取上一个index
+- (NSUInteger)getPreviousIndexOfArray:(NSArray *)array by:(NSUInteger)currentIndex
 {
-    NSLog(@"1111");
+    NSUInteger previousIndex;
+    if (currentIndex > 0)
+        previousIndex = --currentIndex;
+    else
+        previousIndex = array.count - 1;
+    return previousIndex;
 }
 
-- (void)scrollViewDidEndScrollingAnimation:(UIScrollView *)scrollView
+- (void)refreshScrollViewImages:(NSUInteger)currentIndex
 {
-    NSLog(@"2222");
+    secondImageIndex = currentIndex;
+    firstImageIndex = [self getPreviousIndexOfArray:imagesArray by:secondImageIndex];
+    thirdImageIndex = [self getNextIndexOfArray:imagesArray by:secondImageIndex];
+    [self loadPageWithId:firstImageIndex onPage:0];
+    [self loadPageWithId:secondImageIndex onPage:1];
+    [self loadPageWithId:thirdImageIndex onPage:2];
+    
+    self.pageControl.currentPage = secondImageIndex;
+    [self.pageScrollView setContentOffset:CGPointMake(pageScrollView.bounds.size.width, 0)];
 }
 
-- (void)scrollViewDidEndDecelerating:(UIScrollView *)ascrollView
+#pragma mark - UIScrollViewDelegate
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView
 {
-    if(scrollView.contentOffset.x > scrollView.frame.size.width)
-    {
-        // We are moving forward. Load the current doc data on the first page.
-        [self loadPageWithId:currentImageIndex onPage:0];
-        
-        // Add one to the currentIndex or reset to 0 if we have reached the end.
-        currentImageIndex = (currentImageIndex >=  imagesArray.count-1) ? 0 : currentImageIndex + 1;
-        [self loadPageWithId:currentImageIndex onPage:1];
-        
-        // Load content on the last page. This is either from the next item in the array
-        // or the first if we have reached the end.
-        nextImageIndex = (currentImageIndex >= [imagesArray count]-1) ? 0 : currentImageIndex + 1;
-        
-        [self loadPageWithId:nextImageIndex onPage:2];
+    int x = scrollView.contentOffset.x;
+    
+    if (x > (scrollView.frame.size.width + scrollView.frame.size.width / 2))
+        self.pageControl.currentPage = [self getNextIndexOfArray:imagesArray by:secondImageIndex];
+    else if (x < scrollView.frame.size.width / 2)
+        self.pageControl.currentPage = [self getPreviousIndexOfArray:imagesArray by:secondImageIndex];
+    else
+        self.pageControl.currentPage = secondImageIndex;
+    
+    // new page
+    if (x >= (2 * scrollView.frame.size.width)) {
+        [self refreshScrollViewImages:[self getNextIndexOfArray:imagesArray by:secondImageIndex]];
     }
-    if(scrollView.contentOffset.x < scrollView.frame.size.width) {
-        // We are moving backward. Load the current doc data on the last page.
-        [self loadPageWithId:currentImageIndex onPage:2];
-        
-        // Subtract one from the currentIndex or go to the end if we have reached the beginning.
-        currentImageIndex = (currentImageIndex == 0) ? [imagesArray count]-1 : currentImageIndex - 1;
-        [self loadPageWithId:currentImageIndex onPage:1];
-        
-        // Load content on the first page. This is either from the prev item in the array
-        // or the last if we have reached the beginning.
-        previousImageIndex = (currentImageIndex == 0) ? [imagesArray count]-1 : currentImageIndex - 1;
-        
-        [self loadPageWithId:previousImageIndex onPage:0];
+    // previous page
+    else if (x <= 0) {
+        [self refreshScrollViewImages:[self getPreviousIndexOfArray:imagesArray by:secondImageIndex]];
     }
-    pageControl.currentPage = currentImageIndex;
-    [scrollView scrollRectToVisible:CGRectMake(scrollView.frame.size.width, 0, scrollView.frame.size.width, scrollView.frame.size.height) animated:NO];
 }
 
 // Only override drawRect: if you perform custom drawing.
@@ -186,11 +173,8 @@
 
 - (void)autoCycleScrollView
 {
-    CGPoint contentOffSet = scrollView.contentOffset;
-    contentOffSet.x = scrollView.bounds.size.width * 2;
-    
-    [scrollView setContentOffset:contentOffSet animated:YES];
-    [self scrollViewDidEndDecelerating:scrollView];
+    CGPoint rightOffset = CGPointMake(pageScrollView.contentSize.width - pageScrollView.bounds.size.width, pageScrollView.contentOffset.y);
+    [pageScrollView setContentOffset:rightOffset animated:YES];
 }
 
 - (void)pageControlValueDidChanged
