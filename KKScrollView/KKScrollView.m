@@ -7,15 +7,13 @@
 //
 
 #import "KKScrollView.h"
+#import "UIImageView+WebCache.h"
 
 #define kkScrollViewPageNumber      3
 
 @interface KKScrollView () <UIScrollViewDelegate>
 
 @property (nonatomic, retain) UIScrollView *pageScrollView;
-@property (nonatomic, retain) UIPageControl *pageControl;
-
-@property (nonatomic, retain) NSArray *imagesArray;
 @property (nonatomic, retain) UIImageView *firstImageView;
 @property (nonatomic, retain) UIImageView *secondImageView;
 @property (nonatomic, retain) UIImageView *thirdImageView;
@@ -23,11 +21,13 @@
 @property (nonatomic, assign) NSUInteger secondImageIndex;
 @property (nonatomic, assign) NSUInteger thirdImageIndex;
 
+@property (nonatomic, retain) NSTimer *cycleScrollViewTimer;
+
 @end
 
 @implementation KKScrollView
 
-@synthesize pageScrollView, pageControl, imagesArray, firstImageView, secondImageView, thirdImageView ,firstImageIndex, secondImageIndex, thirdImageIndex;
+@synthesize pageScrollView, pageControl, imagesArray, firstImageView, secondImageView, thirdImageView ,firstImageIndex, secondImageIndex, thirdImageIndex, cycleScrollViewTimer;
 
 - (id)initWithFrame:(CGRect)frame
 {
@@ -38,7 +38,7 @@
     return self;
 }
 
-- (id)initWithFrame:(CGRect)frame images:(NSMutableArray *)images
+- (id)initWithFrame:(CGRect)frame images:(NSMutableArray *)images autoCycle:(BOOL)autoCycle defaultImageName:(NSString *)defaultImageName;
 {
     self = [super initWithFrame:frame];
     if (self) {
@@ -46,7 +46,9 @@
         float pageWidth = CGRectGetWidth(frame);
         float pageHeight = CGRectGetHeight(frame);
         
-        self.imagesArray = [NSMutableArray arrayWithArray:images];
+        self.backgroundColor = [UIColor clearColor];
+        if (images == nil)
+            self.imagesArray = [[NSMutableArray alloc] initWithObjects:@"", nil];
         
         self.pageScrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(0, 0, pageWidth, pageHeight)];
         pageScrollView.delegate = self;
@@ -54,7 +56,7 @@
         pageScrollView.showsVerticalScrollIndicator = NO;
         pageScrollView.backgroundColor = [UIColor clearColor];
         pageScrollView.pagingEnabled = YES;
-        pageScrollView.contentSize = CGSizeMake(pageWidth * kkScrollViewPageNumber, pageHeight);
+        pageScrollView.contentSize = CGSizeMake(pageWidth * kkScrollViewPageNumber, 0);
         [self addSubview:pageScrollView];
         
         self.firstImageView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, pageWidth, pageHeight)];
@@ -65,36 +67,72 @@
         [pageScrollView addSubview:secondImageView];
         [pageScrollView addSubview:thirdImageView];
         
-        [self refreshScrollViewImages:0];
+        _needAutoCycle = autoCycle;
+        _timeInterval = 3;
+        self.defaultImageName = @"";
+        self.defaultImageName = defaultImageName;
         
-        _needAutoCycle = NO;
-        _timeInterval = 1.5;
-        
-        self.pageControl = [[UIPageControl alloc] initWithFrame:CGRectMake(0, pageScrollView.bounds.size.height - 10, pageScrollView.bounds.size.width, 10)];
+        self.pageControl = [[UIPageControl alloc] initWithFrame:CGRectMake(0, pageScrollView.bounds.size.height - 10, pageScrollView.bounds.size.width, 2)];
         pageControl.numberOfPages = imagesArray.count;
-        pageControl.pageIndicatorTintColor = [UIColor lightGrayColor];
-        pageControl.currentPageIndicatorTintColor = [UIColor darkGrayColor];
+        pageControl.pageIndicatorTintColor = [UIColor clearColor];
+        pageControl.currentPageIndicatorTintColor = [UIColor clearColor];
         pageControl.defersCurrentPageDisplay = YES;
-//        [pageControl addTarget:self action:@selector(pageControlValueDidChanged) forControlEvents:UIControlEventValueChanged];
+        [pageControl addTarget:self action:@selector(pageControlValueDidChanged) forControlEvents:UIControlEventValueChanged];
         
         [self addSubview:pageControl];
     }
+    [self refreshScrollView];
+    
+    [self initTimer];
+    
     return self;
+}
+
+- (void)updateFrame
+{
+    float pageWidth = CGRectGetWidth(self.bounds);
+    float pageHeight = CGRectGetHeight(self.bounds);
+    
+    pageScrollView.contentSize = CGSizeMake(pageWidth * kkScrollViewPageNumber, 0);
+    
+    CGRect frame = self.firstImageView.frame;
+    frame.size = CGSizeMake(pageWidth, pageHeight);
+    self.firstImageView.frame = frame;
+    
+    frame = self.secondImageView.frame;
+    frame = CGRectMake(pageWidth, 0, pageWidth, pageHeight);
+    self.secondImageView.frame = frame;
+    
+    frame = self.thirdImageView.frame;
+    frame = CGRectMake(pageWidth * 2, 0, pageWidth, pageHeight);
+    self.thirdImageView.frame = frame;
+    
+    self.pageScrollView.frame = self.bounds;
+}
+
+- (void)initTimer
+{
+    if (_needAutoCycle) {
+        self.cycleScrollViewTimer = [NSTimer scheduledTimerWithTimeInterval:_timeInterval target:self selector:@selector(autoCycleScrollView) userInfo:nil repeats:YES];
+        
+        [[NSRunLoop currentRunLoop] addTimer:cycleScrollViewTimer forMode:NSRunLoopCommonModes];
+    }
 }
 
 - (void)loadPageWithId:(NSUInteger)imageIndex onPage:(NSUInteger)pageIndex
 {
     switch (pageIndex) {
         case 0:
-            firstImageView.image = [imagesArray objectAtIndex:imageIndex];
+            //            firstImageView.image = [imagesArray objectAtIndex:imageIndex];
+            [firstImageView sd_setImageWithURL:[NSURL URLWithString:[imagesArray objectAtIndex:imageIndex]] placeholderImage:[UIImage imageNamed:_defaultImageName]];
             break;
             
         case 1:
-            secondImageView.image = [imagesArray objectAtIndex:imageIndex];
+            [secondImageView sd_setImageWithURL:[NSURL URLWithString:[imagesArray objectAtIndex:imageIndex]] placeholderImage:[UIImage imageNamed:_defaultImageName]];
             break;
             
         case 2:
-            thirdImageView.image = [imagesArray objectAtIndex:imageIndex];
+            [thirdImageView sd_setImageWithURL:[NSURL URLWithString:[imagesArray objectAtIndex:imageIndex]] placeholderImage:[UIImage imageNamed:_defaultImageName]];
             break;
             
         default:
@@ -125,6 +163,15 @@
     return previousIndex;
 }
 
+- (void)refreshScrollView
+{
+    pageControl.numberOfPages = imagesArray.count;
+    if (imagesArray && imagesArray.count > 0)
+        [self refreshScrollViewImages:0];
+    else
+        imagesArray = [NSMutableArray arrayWithObjects:@"", nil];
+}
+
 - (void)refreshScrollViewImages:(NSUInteger)currentIndex
 {
     secondImageIndex = currentIndex;
@@ -136,6 +183,8 @@
     
     self.pageControl.currentPage = secondImageIndex;
     [self.pageScrollView setContentOffset:CGPointMake(pageScrollView.bounds.size.width, 0)];
+    
+    [[NSNotificationCenter defaultCenter] postNotificationName:VANotificationScrollPageValueChanged object:self];
 }
 
 #pragma mark - UIScrollViewDelegate
@@ -158,23 +207,34 @@
     else if (x <= 0) {
         [self refreshScrollViewImages:[self getPreviousIndexOfArray:imagesArray by:secondImageIndex]];
     }
+    
+//    [[NSNotificationCenter defaultCenter] postNotificationName:VANotificationScrollPageValueChanged object:self];
+}
+
+- (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView
+{
+    [cycleScrollViewTimer setFireDate:[NSDate distantFuture]];
+}
+
+- (void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate
+{
+    [cycleScrollViewTimer setFireDate:[NSDate dateWithTimeIntervalSinceNow:_timeInterval]];
 }
 
 // Only override drawRect: if you perform custom drawing.
 // An empty implementation adversely affects performance during animation.
-- (void)drawRect:(CGRect)rect
-{
-    if (_needAutoCycle) {
-        NSTimer *cycleScrollViewTimer = [NSTimer scheduledTimerWithTimeInterval:_timeInterval target:self selector:@selector(autoCycleScrollView) userInfo:nil repeats:YES];
-        
-        [[NSRunLoop currentRunLoop] addTimer:cycleScrollViewTimer forMode:NSRunLoopCommonModes];
-    }
-}
+//- (void)drawRect:(CGRect)rect
+//{
+//
+//}
 
 - (void)autoCycleScrollView
 {
-    CGPoint rightOffset = CGPointMake(pageScrollView.contentSize.width - pageScrollView.bounds.size.width, pageScrollView.contentOffset.y);
-    [pageScrollView setContentOffset:rightOffset animated:YES];
+    // auto cycle when has two images
+    if (imagesArray.count > 1) {
+        CGPoint rightOffset = CGPointMake(pageScrollView.contentSize.width - pageScrollView.bounds.size.width, pageScrollView.contentOffset.y);
+        [pageScrollView setContentOffset:rightOffset animated:YES];
+    }
 }
 
 - (void)pageControlValueDidChanged
