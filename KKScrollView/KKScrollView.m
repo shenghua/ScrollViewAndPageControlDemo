@@ -7,7 +7,6 @@
 //
 
 #import "KKScrollView.h"
-#import "UIImageView+WebCache.h"
 
 #define kkScrollViewPageNumber      3
 
@@ -48,7 +47,7 @@
         
         self.backgroundColor = [UIColor clearColor];
         if (images == nil)
-            self.imagesArray = [[NSMutableArray alloc] initWithObjects:@"", nil];
+            self.imagesArray = [NSMutableArray array];
         
         self.pageScrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(0, 0, pageWidth, pageHeight)];
         pageScrollView.delegate = self;
@@ -123,16 +122,18 @@
 {
     switch (pageIndex) {
         case 0:
-            //            firstImageView.image = [imagesArray objectAtIndex:imageIndex];
-            [firstImageView sd_setImageWithURL:[NSURL URLWithString:[imagesArray objectAtIndex:imageIndex]] placeholderImage:[UIImage imageNamed:_defaultImageName]];
+            firstImageView.image = [imagesArray objectAtIndex:imageIndex];
+            //            [firstImageView sd_setImageWithURL:[NSURL URLWithString:[imagesArray objectAtIndex:imageIndex]] placeholderImage:[UIImage imageNamed:_defaultImageName]];
             break;
             
         case 1:
-            [secondImageView sd_setImageWithURL:[NSURL URLWithString:[imagesArray objectAtIndex:imageIndex]] placeholderImage:[UIImage imageNamed:_defaultImageName]];
+            secondImageView.image = [imagesArray objectAtIndex:imageIndex];
+            //            [secondImageView sd_setImageWithURL:[NSURL URLWithString:[imagesArray objectAtIndex:imageIndex]] placeholderImage:[UIImage imageNamed:_defaultImageName]];
             break;
             
         case 2:
-            [thirdImageView sd_setImageWithURL:[NSURL URLWithString:[imagesArray objectAtIndex:imageIndex]] placeholderImage:[UIImage imageNamed:_defaultImageName]];
+            thirdImageView.image = [imagesArray objectAtIndex:imageIndex];
+            //            [thirdImageView sd_setImageWithURL:[NSURL URLWithString:[imagesArray objectAtIndex:imageIndex]] placeholderImage:[UIImage imageNamed:_defaultImageName]];
             break;
             
         default:
@@ -184,7 +185,7 @@
     self.pageControl.currentPage = secondImageIndex;
     [self.pageScrollView setContentOffset:CGPointMake(pageScrollView.bounds.size.width, 0)];
     
-    [[NSNotificationCenter defaultCenter] postNotificationName:VANotificationScrollPageValueChanged object:self];
+    //    [[NSNotificationCenter defaultCenter] postNotificationName:VANotificationScrollPageValueChanged object:self];
 }
 
 #pragma mark - UIScrollViewDelegate
@@ -208,7 +209,7 @@
         [self refreshScrollViewImages:[self getPreviousIndexOfArray:imagesArray by:secondImageIndex]];
     }
     
-//    [[NSNotificationCenter defaultCenter] postNotificationName:VANotificationScrollPageValueChanged object:self];
+    //    [[NSNotificationCenter defaultCenter] postNotificationName:VANotificationScrollPageValueChanged object:self];
 }
 
 - (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView
